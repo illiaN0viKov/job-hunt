@@ -29,15 +29,6 @@ const LandPage = (props: Props) => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">JobHunt</h1>
-        <div className="flex gap-4">
-          <Button variant="ghost">Sign In</Button>
-          <Button>Get Started</Button>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center px-6 py-16 lg:py-24 max-w-7xl mx-auto">
         {/* Content */}
@@ -58,11 +49,13 @@ const LandPage = (props: Props) => {
           </div>
 
           <div className="flex gap-4 pt-4">
-            <Link href="/dashboard">
+
+            <Link href="/sign-up">
               <Button size="lg" className="text-base">
                 Get Started
               </Button>
             </Link>
+            
             <Button size="lg" variant="outline" className="text-base">
               Learn More
             </Button>
