@@ -3,7 +3,7 @@ import connectDB from "@/lib/db";
 import { Board } from "@/lib/models";
 import { redirect } from "next/navigation";
 import KanbanBoard from "@/components/kanban-board";
-import { Suspense } from "react";
+// import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +52,6 @@ async function DashboardPage() {
 
 export default async function Dashboard() {
   return (
-    <Suspense fallback={<p>Loading...</p>}>
       <DashboardPage />
-    </Suspense>
   );
 }
