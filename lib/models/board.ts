@@ -1,4 +1,3 @@
-import { string } from "better-auth";
 import mongoose, {Schema, Document} from "mongoose";
 
 export interface IBoard extends Document {
