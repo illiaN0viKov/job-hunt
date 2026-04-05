@@ -18,6 +18,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import CreateJobApplicationDialog from "./create-job-dialog";
 import JobApplicationCard from "./job-application-card";
@@ -37,9 +45,12 @@ import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
+import { deleteColumn } from "@/lib/actions/columns";
+import AddColumnDialog from "./add-column-dialog";
 
 interface KanbanBoardProps {
   board: Board;
@@ -85,7 +96,7 @@ function DroppableColumn({
   sortedColumns: Column[];
 }) {
 
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: column._id,
     data: {
       type: "column",
@@ -93,10 +104,51 @@ function DroppableColumn({
     },
   });
 
+  const {
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    attributes,
+    listeners,
+  } = useSortable({
+    id: column._id,
+    data: {
+      type: "column",
+      column,
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const handleSetNodeRef = (node: HTMLElement | null) => {
+    setDroppableRef(node);
+    setSortableRef(node);
+  };
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const sortedJobs = column.jobApplications?.sort((a, b) => a.order - b.order) || [];
 
+  const handleDeleteColumn = async () => {
+      setShowDeleteConfirm(false);
+      try {
+          const result = await deleteColumn(column._id);
+    
+          if (result.error) {
+            console.error("Failed to delete job application:", result.error);
+          }
+      }
+      catch(err) {
+        console.error("Failed to delete column: ", err);
+      }
+  }
+
   return (
-    <Card className="min-w-[300px] flex-shrink-0 shadow-md p-0">
+    <>
+      <Card className="min-w-[300px] flex-shrink-0 shadow-md p-0" style={style} ref={handleSetNodeRef} {...attributes} {...listeners}>
 
       <CardHeader
         className={`${config.color} text-white rounded-t-lg pb-3 pt-3`}
@@ -108,6 +160,7 @@ function DroppableColumn({
               {column.name}
             </CardTitle>
           </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -119,7 +172,7 @@ function DroppableColumn({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Column
               </DropdownMenuItem>
@@ -129,7 +182,7 @@ function DroppableColumn({
       </CardHeader>
 
       <CardContent
-        ref={setNodeRef}
+        ref={handleSetNodeRef}
         className={`space-y-2 pt-4 bg-gray-50/50 min-h-[600px]  rounded-b-lg ${
           isOver ? "ring-2 ring-blue-500" : ""
         }`}
@@ -149,9 +202,31 @@ function DroppableColumn({
         </SortableContext>
 
         <CreateJobApplicationDialog columnId={column._id} boardId={boardId} />
+
       </CardContent>
     </Card>
-  );
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Column?</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete the column and all applications in it? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleDeleteColumn}>
+            Delete Column
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>
+);
 }
 
 function SortableJobCard({
@@ -315,7 +390,12 @@ export default function KanbanBoard({ board, userId }: KanbanBoardProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <AddColumnDialog boardId={board._id} columns={columns}/>
+        </div>
+ 
         <div className="flex gap-4 overflow-x-auto pb-4">
+          
           {sortedColumns.map((col, key) => {
             const config = COLUMN_CONFIG[key] || {
               color: "bg-gray-500",

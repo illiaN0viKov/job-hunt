@@ -79,7 +79,7 @@ export default function JobApplicationCard({
         console.error("Failed to delete job application:", result.error);
       }
     } catch (err) {
-      console.error("Failed to move job application: ", err);
+      console.error("Failed to delete job application: ", err);
     }
   }
 
@@ -151,7 +151,7 @@ export default function JobApplicationCard({
                         .filter((c) => c._id !== job.columnId)
                         .map((column, key) => (
                           <DropdownMenuItem
-                            key={key}
+                            key={job._id}
                             onClick={() => handleMove(column._id)}
                           >
                             Move to {column.name}
@@ -286,6 +286,7 @@ export default function JobApplicationCard({
               </Button>
               <Button type="submit">Save Changes</Button>
             </DialogFooter>
+            
           </form>
         </DialogContent>
       </Dialog>
