@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "./lib/auth/auth";
 
 export default async function proxy(request: NextRequest) {
+  // ✅ Allow preflight requests
+  if (request.method === "OPTIONS") {
+    return NextResponse.next();
+  }
+
+  // ✅ Skip auth API routes
+  if (request.nextUrl.pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   const session = await getSession();
 
   const isSignInPage = request.nextUrl.pathname.startsWith("/sign-in");
   const isSignUpPage = request.nextUrl.pathname.startsWith("/sign-up");
-  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
+  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
 
   if ((isSignInPage || isSignUpPage) && session?.user) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
