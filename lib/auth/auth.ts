@@ -22,6 +22,10 @@ export const auth = betterAuth({
             maxAge:60*60
         },
     },
+
+        trustedOrigins: [
+        process.env.NEXT_PUBLIC_APP_URL!,
+        ],
     
     emailAndPassword: {
         enabled: true, 
