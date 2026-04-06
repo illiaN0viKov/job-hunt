@@ -5,6 +5,8 @@ import {
   Award,
   Calendar,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Mic,
   MoreHorizontal,
   MoreVertical,
@@ -48,9 +50,11 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
-import { deleteColumn } from "@/lib/actions/columns";
+import { useState, useRef, useEffect} from "react";
+import { deleteColumn, moveColumn } from "@/lib/actions/columns";
 import AddColumnDialog from "./add-column-dialog";
+import autoAnimate from '@formkit/auto-animate'
+
 
 interface KanbanBoardProps {
   board: Board;
@@ -61,6 +65,30 @@ interface ColConfig {
   color: string;
   icon: React.ReactNode;
 }
+
+const COLUMN_NAME_CONFIG: Record<string, ColConfig> = {
+  "Wishlist": {
+    color: "bg-cyan-500",
+    icon: <Calendar className="h-4 w-4" />,
+  },
+  "Applied": {
+    color: "bg-purple-500",
+    icon: <CheckCircle2 className="h-4 w-4" />,
+  },
+  "Interviewing": {
+    color: "bg-green-500",
+    icon: <Mic className="h-4 w-4" />,
+  },
+  "Offer": {
+    color: "bg-yellow-500",
+    icon: <Award className="h-4 w-4" />,
+  },
+  "Rejected": {
+    color: "bg-red-500",
+    icon: <XCircle className="h-4 w-4" />,
+  },
+};
+
 const COLUMN_CONFIG: Array<ColConfig> = [
   {
     color: "bg-cyan-500",
@@ -89,11 +117,13 @@ function DroppableColumn({
   config,
   boardId,
   sortedColumns,
+  columnIndex,
 }: {
   column: Column;
   config: ColConfig;
   boardId: string;
   sortedColumns: Column[];
+  columnIndex: number;
 }) {
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -104,31 +134,34 @@ function DroppableColumn({
     },
   });
 
-  const {
-    setNodeRef: setSortableRef,
-    transform,
-    transition,
-    attributes,
-    listeners,
-  } = useSortable({
-    id: column._id,
-    data: {
-      type: "column",
-      column,
-    },
-  });
+  // const {
+  //   setNodeRef: setSortableRef,
+  //   transform,
+  //   transition,
+  //   attributes,
+  //   listeners,
+  // } = useSortable({
+  //   id: column._id,
+  //   data: {
+  //     type: "column",
+  //     column,
+  //   },
+  // });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  // const style = {
+  //   transform: CSS.Transform.toString(transform),
+  //   transition,
+  // };
 
-  const handleSetNodeRef = (node: HTMLElement | null) => {
-    setDroppableRef(node);
-    setSortableRef(node);
-  };
+  // const handleSetNodeRef = (node: HTMLElement | null) => {
+  //   setDroppableRef(node);
+  //   setSortableRef(node);
+  // };
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const isFirst = columnIndex === 0;
+  const isLast = columnIndex === sortedColumns.length - 1;
 
   const sortedJobs = column.jobApplications?.sort((a, b) => a.order - b.order) || [];
 
@@ -137,18 +170,23 @@ function DroppableColumn({
       try {
           const result = await deleteColumn(column._id);
     
-          if (result.error) {
-            console.error("Failed to delete job application:", result.error);
-          }
       }
       catch(err) {
         console.error("Failed to delete column: ", err);
       }
   }
 
+  const handleMoveColumn = async (direction: 'left' | 'right') => {
+    try {
+      await moveColumn(column._id, boardId, direction);
+    } catch (err) {
+      console.error("Failed to move column: ", err);
+    }
+  }
+
   return (
     <>
-      <Card className="min-w-[300px] flex-shrink-0 shadow-md p-0" style={style} ref={handleSetNodeRef} {...attributes} {...listeners}>
+      <Card className="min-w-[300px] flex-shrink-0 shadow-md p-0">
 
       <CardHeader
         className={`${config.color} text-white rounded-t-lg pb-3 pt-3`}
@@ -161,28 +199,52 @@ function DroppableColumn({
             </CardTitle>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <div className="flex items-center gap-1">
+            {!isFirst && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-white hover:bg-white/20"
+                onClick={() => handleMoveColumn('left')}
               >
-                <MoreVertical className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Column
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+            
+            {!isLast && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-white hover:bg-white/20"
+                onClick={() => handleMoveColumn('right')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-white hover:bg-white/20"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Column
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent
-        ref={handleSetNodeRef}
+
         className={`space-y-2 pt-4 bg-gray-50/50 min-h-[600px]  rounded-b-lg ${
           isOver ? "ring-2 ring-blue-500" : ""
         }`}
@@ -274,6 +336,14 @@ export default function KanbanBoard({ board, userId }: KanbanBoardProps) {
   const { columns, moveJob } = useBoard(board);
 
   const sortedColumns = columns?.sort((a, b) => a.order - b.order) || [];
+
+  // Create stable config mapping based on column name
+  const getConfigForColumn = (column: Column) => {
+    return COLUMN_NAME_CONFIG[column.name] || {
+      color: "bg-gray-500",
+      icon: <Calendar className="h-4 w-4" />,
+    };
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -381,7 +451,12 @@ export default function KanbanBoard({ board, userId }: KanbanBoardProps) {
   }
 
   const activeJob = sortedColumns.flatMap((col) => col.jobApplications || []).find((job) => job._id === activeId);
-   
+   const columnsContainer = useRef(null)
+
+     useEffect(() => {
+    columnsContainer.current && autoAnimate(columnsContainer.current)
+  }, [columnsContainer, sortedColumns])
+  
   return (
     <DndContext
       sensors={sensors}
@@ -394,20 +469,18 @@ export default function KanbanBoard({ board, userId }: KanbanBoardProps) {
           <AddColumnDialog boardId={board._id} columns={columns}/>
         </div>
  
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-4 overflow-x-auto pb-4" ref={columnsContainer}>
           
           {sortedColumns.map((col, key) => {
-            const config = COLUMN_CONFIG[key] || {
-              color: "bg-gray-500",
-              icon: <Calendar className="h-4 w-4" />,
-            };
+            const config = getConfigForColumn(col);
             return (
               <DroppableColumn
-                key={key}
+                key={col._id}
                 column={col}
                 config={config}
                 boardId={board._id}
                 sortedColumns={sortedColumns}
+                columnIndex={key}
               />
             );
           })}

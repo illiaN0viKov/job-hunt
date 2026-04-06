@@ -107,8 +107,71 @@ export async function deleteColumn(id: string) {
   await ColumnModel.deleteOne({ _id: id });
 
   revalidatePath("/dashboard");
+}
+
+export async function moveColumn(
+  columnId: string,
+  boardId: string,
+  direction: 'left' | 'right'
+) {
+  const session = await getSession();
+
+  if (!session?.user) {
+    return { error: "Unauthorized" };
+  }
+
+  await connectDB();
+
+  const board = await Board.findOne({
+    _id: boardId,
+    userId: session.user.id,
+  });
+
+  if (!board) {
+    return { error: "Board not found" };
+  }
+
+  const currentColumn = await ColumnModel.findById(columnId);
+
+  if (!currentColumn) {
+    return { error: "Column not found" };
+  }
+
+  const allColumns = await ColumnModel.find({ boardId }).sort({ order: 1 });
+
+  const currentIndex = allColumns.findIndex((col) => col._id.toString() === columnId);
+
+  if (currentIndex === -1) {
+    return { error: "Column not found in board" };
+  }
+
+  let swapIndex = -1;
+
+  if (direction === 'left' && currentIndex > 0) {
+    swapIndex = currentIndex - 1;
+  } else if (direction === 'right' && currentIndex < allColumns.length - 1) {
+    swapIndex = currentIndex + 1;
+  } else {
+    return { error: "Cannot move column in that direction" };
+  }
+
+  const swapColumn = allColumns[swapIndex];
+
+  // Swap the order values
+  await ColumnModel.updateOne(
+    { _id: currentColumn._id },
+    { order: swapColumn.order }
+  );
+
+  await ColumnModel.updateOne(
+    { _id: swapColumn._id },
+    { order: currentColumn.order }
+  );
+
+  revalidatePath("/dashboard");
 
   return { success: true };
 }
+
 
 
