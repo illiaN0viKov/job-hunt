@@ -244,8 +244,8 @@ function DroppableColumn({
       </CardHeader>
 
       <CardContent
-
-        className={`space-y-2 pt-4 bg-gray-50/50 min-h-[200px]  rounded-b-lg ${
+        ref={setDroppableRef}
+        className={`space-y-2 pt-4 bg-gray-50/50 min-h-[300px]  rounded-b-lg ${
           isOver ? "ring-2 ring-blue-500" : ""
         }`}
       >
